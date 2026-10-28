@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Spyfall">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Spyfall</title>
+<style>
+  :root {
+    --bg: #f2f2f7;
+    --card: #ffffff;
+    --text: #000000;
+    --muted: #6e6e73;
+    --sep: #d1d1d6;
+    --accent: #007aff;
+    --danger: #ff3b30;
+    --shadow: rgba(0, 0, 0, 0.12);
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000;
+      --card: #1c1c1e;
+      --text: #ffffff;
+      --muted: #98989f;
+      --sep: #38383a;
+      --accent: #0a84ff;
+      --danger: #ff453a;
+      --shadow: rgba(255, 255, 255, 0.12);
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior: none;
+  }
+  button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
+  button:disabled { color: var(--muted); opacity: 0.6; cursor: default; }
+  input { font: inherit; color: var(--text); background: none; border: 0; outline: none; min-width: 0; flex: 1; padding: 0; }
+  [hidden] { display: none !important; }
+
+  .screen {
+    min-height: 100%;
+    padding: env(safe-area-inset-top) max(16px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  /* Navigation bar */
+  .bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 44px; margin-bottom: 4px; }
+  .bar .back { justify-self: start; white-space: nowrap; }
+  .bar h2 { margin: 0; font-size: 17px; font-weight: 600; }
+  .large-title { font-size: 34px; font-weight: 700; margin: 4px 0 16px; }
+
+  /* Grouped lists, like iOS forms */
+  .group-title { margin: 22px 16px 6px; font-size: 13px; font-weight: 400; text-transform: uppercase; color: var(--muted); }
+  .group { background: var(--card); border-radius: 10px; overflow: hidden; margin: 0; padding: 0; list-style: none; }
+  .row { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 16px; width: 100%; text-align: left; color: var(--text); }
+  .row + .row { border-top: 0.5px solid var(--sep); }
+  .row .name { flex: 1; overflow-wrap: anywhere; }
+  .row.link::after { content: "›"; color: var(--muted); font-size: 22px; line-height: 1; }
+  .row.center { justify-content: center; color: var(--accent); }
+  .row.primary { justify-content: center; color: var(--accent); font-weight: 600; }
+  .row.primary:disabled { color: var(--muted); }
+  .muted { color: var(--muted); }
+  .footer { margin: 6px 16px 0; font-size: 13px; color: var(--muted); }
+  .icon-btn { display: grid; place-items: center; width: 32px; height: 32px; color: var(--danger); }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .add-row button { font-weight: 600; }
+  select { font: inherit; color: var(--accent); background: none; border: 0; text-align: right; }
+  .stepper { display: flex; border-radius: 8px; overflow: hidden; background: var(--bg); }
+  .stepper button { width: 46px; height: 32px; font-size: 22px; line-height: 1; color: var(--text); }
+  .stepper button + button { border-left: 0.5px solid var(--sep); }
+
+  /* Start screen */
+  #start { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center; }
+  .logo { color: var(--text); width: 140px; padding: 8px; }
+  .logo svg { width: 100%; height: auto; display: block; }
+  .logo .lens { fill: none; transition: fill 0.2s; }
+  .logo.filled .lens { fill: currentColor; }
+  .big-link { font-size: 28px; }
+  #start h1 { margin: 0 0 24px; font-size: 34px; }
+
+  /* Instructions */
+  .prose { background: var(--card); border-radius: 10px; padding: 4px 18px 12px; }
+  .prose h3 { margin: 18px 0 6px; }
+  .prose ol { padding-left: 22px; }
+  .prose li { margin-bottom: 8px; }
+
+  /* Game */
+  #game { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; user-select: none; -webkit-user-select: none; }
+  #game .bar { grid-template-columns: auto 1fr; }
+  #stage { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 16px; padding-bottom: 44px; text-align: center; cursor: pointer; }
+  .card { background: var(--card); border-radius: 16px; padding: 36px 20px; box-shadow: 0 2px 12px var(--shadow); }
+  .card .label { color: var(--muted); font-size: 17px; margin-bottom: 8px; }
+  .card .main { font-size: 34px; font-weight: 700; overflow-wrap: anywhere; }
+  .card .hint { color: var(--muted); font-size: 15px; margin-top: 18px; }
+  .card.spy .main { color: var(--danger); }
+  .timer-head { color: var(--muted); font-size: 22px; }
+  .timer-digits { font: 700 80px/1 ui-rounded, -apple-system, sans-serif; font-variant-numeric: tabular-nums; }
+  .timer-digits.urgent { color: var(--danger); }
+  .progress { height: 6px; border-radius: 3px; background: var(--sep); overflow: hidden; margin: 0 8px; }
+  .progress > div { height: 100%; background: var(--accent); transition: width 0.25s linear; }
+  .progress.urgent > div { background: var(--danger); }
+  .action { font-size: 22px; padding: 8px; }
+  .action.big { font-size: 28px; font-weight: 600; }
+  .spy-name { font-size: 28px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<section class="screen" id="start">
+  <button class="logo" id="logo" aria-label="Spyfall sunglasses">
+    <svg viewBox="0 0 128 56" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M4 12 H124"/>
+      <path class="lens" d="M10 12 H56 V24 A20 20 0 0 1 36 44 H30 A20 20 0 0 1 10 24 Z"/>
+      <path class="lens" d="M72 12 H118 V24 A20 20 0 0 1 98 44 H92 A20 20 0 0 1 72 24 Z"/>
+    </svg>
+  </button>
+  <h1>Spyfall</h1>
+  <button class="big-link" data-go="setup">Start Game</button>
+  <button class="big-link" data-go="instructions">Instructions</button>
+</section>
+
+<section class="screen" id="setup" hidden>
+  <header class="bar"><button class="back" data-back>‹ Back</button><span></span><span></span></header>
+  <h1 class="large-title">Game Setup</h1>
+
+  <h3 class="group-title">Player Names</h3>
+  <ul class="group" id="player-list"></ul>
+
+  <h3 class="group-title">Number of Spies</h3>
+  <div class="group" id="spies-group"></div>
+
+  <h3 class="group-title">Round Timer</h3>
+  <div class="group">
+    <div class="row">
+      <span class="name" id="timer-label"></span>
+      <div class="stepper">
+        <button id="timer-minus" aria-label="Shorter">−</button>
+        <button id="timer-plus" aria-label="Longer">+</button>
+      </div>
+    </div>
+  </div>
+  <p class="footer">Starts after everyone has seen their card.</p>
+
+  <h3 class="group-title">Places</h3>
+  <div class="group">
+    <button class="row link" data-go="places"><span class="name">Manage Places</span><span class="muted" id="places-count"></span></button>
+  </div>
+
+  <h3 class="group-title"></h3>
+  <div class="group"><button class="row primary" id="start-game">Start Game</button></div>
+</section>
+
+<section class="screen" id="places" hidden>
+  <header class="bar"><button class="back" data-back>‹ Setup</button><h2>Places</h2><span></span></header>
+  <ul class="group" id="place-list"></ul>
+  <h3 class="group-title"></h3>
+  <div class="group"><button class="row center" id="revert-places">Revert to Standard</button></div>
+</section>
+
+<section class="screen" id="instructions" hidden>
+  <header class="bar"><button class="back" data-back>‹ Back</button><h2>Instructions</h2><span></span></header>
+  <div class="prose">
+    <h3>How to Play Spyfall</h3>
+    <p>Welcome to Spyfall! Gather your friends and get ready for a game of mystery, bluffing, and clever deduction. Here’s how you can dive into the fun:</p>
+    <h3>Setting Up the Game</h3>
+    <ol>
+      <li><b>Open the Game Setup</b>: This is your control center where you can tailor the game settings.</li>
+      <li><b>Add Players</b>: Enter the names of all players participating. You need at least 3 players; 3-8 is ideal.</li>
+      <li><b>Set Number of Spies</b>: Decide how many spies you want in the game. More spies increase complexity and fun!</li>
+      <li><b>Manage Places</b>: Tap on ‘Manage Places’ to view, add, or delete the list of possible locations. Each non-spy player will receive one of these locations.</li>
+      <li><b>Start the Game</b>: Once settings are configured, hit ‘Start Game’ to begin the mystery!</li>
+    </ol>
+    <h3>Playing the Game</h3>
+    <ol>
+      <li><b>Card Assignment</b>: Pass the phone around. Each player will tap to receive a card — you're either a Spy or a Non-Spy. If you're a Non-Spy, you will see a location. Every Non-Spy will get the same location! If you're a Spy, your card will not reveal a location, but tell you that you are a Spy.</li>
+      <li><b>Discussion Round</b>: Once everyone has seen their card, the round timer starts (set its length or turn it off under ‘Round Timer’ in the Game Setup). Discuss among yourselves to deduce who the spies are. Players should ask each other questions about the location to figure out who doesn't belong, while spies bluff to blend in.</li>
+      <li><b>Reveal Spies</b>: When the timer runs out, or earlier if you're ready, tap the ‘Reveal Spies’ button. Spies are never revealed automatically.</li>
+      <li><b>Ending the Game</b>: After the spies are revealed, you can discuss how the round went and then press ‘End Game’ to return to the Game Setup for another round.</li>
+    </ol>
+    <p>Enjoy playing Spyfall!</p>
+  </div>
+</section>
+
+<section class="screen" id="game" hidden>
+  <header class="bar"><button class="back" id="quit-game">Quit</button><span></span></header>
+  <div id="stage"></div>
+</section>
+
+<script src="game-logic.js"></script>
+<script>
+  const G = GameLogic;
+  const $ = sel => document.querySelector(sel);
+
+  // Small helper to build DOM nodes; text always goes in as text, so names can't inject HTML
+  function el(tag, props = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [key, value] of Object.entries(props)) {
+      if (key === "class") node.className = value;
+      else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+      else if (value === true) node.setAttribute(key, "");
+      else if (value !== false && value != null) node.setAttribute(key, value);
+    }
+    for (const child of children.flat()) if (child != null && child !== false) node.append(child);
+    return node;
+  }
+
+  const trashIcon = () => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.innerHTML = '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>';
+    return svg;
+  };
+
+  // ---------- Saved settings ----------
+  // Stays on the device. The home-screen app keeps its own copy, separate from Safari.
+  const store = {
+    get(key, fallback) {
+      try {
+        const raw = localStorage.getItem("spyfall." + key);
+        return raw === null ? fallback : JSON.parse(raw);
+      } catch { return fallback; }
+    },
+    set(key, value) {
+      try { localStorage.setItem("spyfall." + key, JSON.stringify(value)); } catch {}
+    },
+  };
+
+  const settings = {
+    players: store.get("players", []),
+    spies: store.get("spies", 1),
+    timerMinutes: store.get("timerMinutes", G.DEFAULT_TIMER_MINUTES),
+    places: store.get("places", G.DEFAULT_PLACES),
+  };
+  function save() {
+    settings.spies = G.clampSpies(settings.spies, settings.players.length);
+    for (const key of Object.keys(settings)) store.set(key, settings[key]);
+  }
+
+  // ---------- Navigation ----------
+  const stack = ["start"];
+  function show(screen) {
+    document.querySelectorAll(".screen").forEach(s => { s.hidden = s.id !== screen; });
+    if (screen === "setup") renderSetup();
+    if (screen === "places") renderPlaces();
+    window.scrollTo(0, 0);
+  }
+  function go(screen) { stack.push(screen); show(screen); }
+  function back() { if (stack.length > 1) stack.pop(); show(stack[stack.length - 1]); }
+  document.addEventListener("click", e => {
+    const target = e.target.closest("[data-go], [data-back]");
+    if (!target) return;
+    if (target.hasAttribute("data-back")) back(); else go(target.dataset.go);
+  });
+
+  $("#logo").addEventListener("click", () => $("#logo").classList.toggle("filled"));
+
+  // ---------- Lists with an add field (players and places) ----------
+  function renderEditableList(list, items, placeholder, onAdd, onDelete, extraTaken = []) {
+    list.replaceChildren();
+    for (const item of items) {
+      list.append(el("li", { class: "row" },
+        el("span", { class: "name" }, item),
+        el("button", { class: "icon-btn", "aria-label": `Delete ${item}`, onclick: () => onDelete(item) }, trashIcon()),
+      ));
+    }
+    const input = el("input", { placeholder, enterkeyhint: "done", autocapitalize: "words", autocomplete: "off" });
+    const addButton = el("button", { type: "submit", disabled: true }, "Add");
+    const validate = () => G.validatedNewEntry(input.value, items.concat(extraTaken));
+    input.addEventListener("input", () => { addButton.disabled = validate() === null; });
+    list.append(el("li", { class: "row add-row" },
+      el("form", {
+        style: "display:flex;gap:12px;width:100%",
+        onsubmit: e => {
+          e.preventDefault();
+          const value = validate();
+          if (value !== null) { onAdd(value); list.querySelector("input").focus(); }
+        },
+      }, input, addButton),
+    ));
+  }
+
+  // ---------- Game setup ----------
+  function renderSetup() {
+    const { players } = settings;
+    renderEditableList($("#player-list"), players, "Enter new player name",
+      name => { players.push(name); save(); renderSetup(); },
+      name => { players.splice(players.indexOf(name), 1); save(); renderSetup(); });
+
+    const spiesGroup = $("#spies-group");
+    spiesGroup.replaceChildren();
+    if (players.length >= G.MIN_PLAYERS) {
+      const select = el("select", {
+        "aria-label": "Number of spies",
+        onchange: e => { settings.spies = Number(e.target.value); save(); },
+      });
+      for (let n = 1; n < players.length; n++) {
+        select.append(el("option", { value: n, selected: n === settings.spies }, String(n)));
+      }
+      spiesGroup.append(el("label", { class: "row" }, el("span", { class: "name" }, "Number of Spies"), select));
+    } else {
+      spiesGroup.append(el("div", { class: "row muted" }, `Add at least ${G.MIN_PLAYERS} players to start`));
+    }
+
+    $("#timer-label").textContent = settings.timerMinutes === 0 ? "Off" : `${settings.timerMinutes} min`;
+    $("#timer-minus").disabled = settings.timerMinutes <= 0;
+    $("#timer-plus").disabled = settings.timerMinutes >= G.MAX_TIMER_MINUTES;
+    $("#places-count").textContent = settings.places.length;
+    $("#start-game").disabled = players.length < G.MIN_PLAYERS || settings.places.length === 0;
+  }
+  $("#timer-minus").addEventListener("click", () => { settings.timerMinutes--; save(); renderSetup(); });
+  $("#timer-plus").addEventListener("click", () => { settings.timerMinutes++; save(); renderSetup(); });
+
+  // ---------- Places ----------
+  function renderPlaces() {
+    const { places } = settings;
+    renderEditableList($("#place-list"), places, "Enter a new place",
+      place => { places.push(place); save(); renderPlaces(); },
+      place => { places.splice(places.indexOf(place), 1); save(); renderPlaces(); },
+      [G.SPY]);
+  }
+  $("#revert-places").addEventListener("click", () => {
+    if (confirm("Are you sure you want to reset your places to the default places? This action cannot be undone.")) {
+      settings.places = [...G.DEFAULT_PLACES];
+      save();
+      renderPlaces();
+    }
+  });
+
+  // ---------- Sound, vibration and keeping the screen on ----------
+  let audio = null;
+  function unlockAudio() {
+    // Browsers only allow sound after a tap, so this runs when the game starts
+    try {
+      if (navigator.audioSession) navigator.audioSession.type = "playback";
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      audio.resume();
+    } catch {}
+  }
+  function playAlarm() {
+    try { navigator.vibrate && navigator.vibrate([400, 200, 400]); } catch {}
+    if (!audio) return;
+    const start = audio.currentTime;
+    for (let i = 0; i < 3; i++) {
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.0001, start + i * 0.5);
+      gain.gain.exponentialRampToValueAtTime(0.4, start + i * 0.5 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + i * 0.5 + 0.35);
+      osc.connect(gain).connect(audio.destination);
+      osc.start(start + i * 0.5);
+      osc.stop(start + i * 0.5 + 0.4);
+    }
+  }
+
+  let wakeLock = null;
+  async function keepScreenOn(on) {
+    try {
+      if (on && !wakeLock && "wakeLock" in navigator) {
+        wakeLock = await navigator.wakeLock.request("screen");
+        wakeLock.addEventListener("release", () => { wakeLock = null; });
+      } else if (!on && wakeLock) {
+        await wakeLock.release();
+        wakeLock = null;
+      }
+    } catch {}
+  }
+
+  // ---------- Game ----------
+  let game = null;
+
+  $("#start-game").addEventListener("click", () => {
+    unlockAudio();
+    game = {
+      players: [...settings.players],
+      cards: G.dealCards(settings.places, settings.spies, settings.players.length),
+      current: 0,
+      revealed: false,
+      phase: "cards", // cards -> round -> reveal
+      timer: null,
+    };
+    go("game");
+    renderGame();
+  });
+
+  function endGame() {
+    stopTicking();
+    keepScreenOn(false);
+    game = null;
+    back();
+  }
+  $("#quit-game").addEventListener("click", () => {
+    if (game.phase === "reveal" || confirm("Quit this round? The cards will be dealt again next time.")) endGame();
+  });
+
+  $("#stage").addEventListener("click", e => {
+    if (!game || game.phase !== "cards" || e.target.closest("button")) return;
+    if (!game.revealed) {
+      game.revealed = true;
+    } else if (game.current < game.players.length - 1) {
+      game.current++;
+      game.revealed = false;
+    } else {
+      startRound();
+    }
+    renderGame();
+  });
+
+  function startRound() {
+    game.phase = "round";
+    if (settings.timerMinutes > 0) {
+      const duration = settings.timerMinutes * 60;
+      game.timer = { duration, remaining: duration, endAt: Date.now() + duration * 1000, finished: false };
+      startTicking();
+    }
+    keepScreenOn(true);
+  }
+
+  let ticker = null;
+  function startTicking() { stopTicking(); ticker = setInterval(tick, 250); }
+  function stopTicking() { clearInterval(ticker); ticker = null; }
+  function tick() {
+    const t = game && game.timer;
+    if (!t || t.endAt === null) return;
+    // Counted from the end time, so it stays right even if the phone was locked in between
+    t.remaining = Math.max(0, (t.endAt - Date.now()) / 1000);
+    if (t.remaining === 0) {
+      t.endAt = null;
+      t.finished = true;
+      stopTicking();
+      playAlarm();
+    }
+    renderGame();
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || !game) return;
+    if (game.phase === "round") keepScreenOn(true);
+    tick();
+  });
+
+  function renderGame() {
+    const stage = $("#stage");
+    stage.replaceChildren();
+    if (!game) return;
+    const last = game.players.length - 1;
+
+    if (game.phase === "cards") {
+      const card = game.cards[game.current];
+      const isSpy = card === G.SPY;
+      stage.append(game.revealed
+        ? el("div", { class: "card" + (isSpy ? " spy" : "") },
+            el("div", { class: "label" }, isSpy ? "You are the" : "Your location"),
+            el("div", { class: "main" }, isSpy ? "Spy" : card),
+            el("div", { class: "hint" }, game.current < last ? "Tap to hide, then pass the phone on" : "Tap to hide your card"))
+        : el("div", { class: "card" },
+            el("div", { class: "main" }, game.players[game.current]),
+            el("div", { class: "hint" }, "Tap to reveal your card")));
+      return;
+    }
+
+    if (game.phase === "round") {
+      const t = game.timer;
+      if (t) {
+        const urgent = t.remaining <= 30;
+        stage.append(
+          el("div", { class: "timer-head" }, t.finished ? "Time's up!" : "Find the spy!"),
+          el("div", { class: "timer-digits" + (urgent ? " urgent" : "") }, G.formattedTime(t.remaining)),
+          el("div", { class: "progress" + (urgent ? " urgent" : "") },
+            el("div", { style: `width:${(t.remaining / t.duration) * 100}%` })),
+        );
+        if (!t.finished) {
+          const running = t.endAt !== null;
+          stage.append(el("button", {
+            class: "action",
+            onclick: () => {
+              if (running) {
+                t.endAt = null;
+                stopTicking();
+              } else {
+                t.endAt = Date.now() + t.remaining * 1000;
+                startTicking();
+              }
+              renderGame();
+            },
+          }, running ? "Pause" : "Resume"));
+        }
+      }
+      // Spies are only ever revealed by hand, also when the timer runs out
+      stage.append(el("button", {
+        class: "action big",
+        onclick: () => { stopTicking(); keepScreenOn(false); game.phase = "reveal"; renderGame(); },
+      }, "Reveal Spies"));
+      return;
+    }
+
+    const spies = game.players.filter((_, i) => game.cards[i] === G.SPY);
+    stage.append(
+      ...spies.map(name => el("div", { class: "spy-name" }, `${name} is a Spy!`)),
+      el("div", { class: "muted" }, `The location was ${game.cards.find(c => c !== G.SPY)}`),
+      el("button", { class: "action big", onclick: endGame }, "End Game"),
+    );
+  }
+
+  // Works offline once opened (see sw.js)
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+</script>
+</body>
+</html>
